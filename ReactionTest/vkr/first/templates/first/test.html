@@ -1,0 +1,112 @@
+{% extends 'first/base.html' %}
+{% load static %}
+{% block content %}
+<div class="container mt-4">
+    <div class="container-custom">
+        <h2 class="mb-4">{{ ticket.name }}</h2>
+        <form method="POST" action="{% url 'submit_test' %}" id="test-form">
+            {% csrf_token %}
+            <input type="hidden" name="ticket_id" value="{{ ticket.id }}">
+            <div id="test-container">
+                {% for question in questions %}
+                <div class="question mb-4" data-question-id="{{ question.id }}" style="display:none;">
+                    <p>{{ forloop.counter }}. {{ question.text }}</p>
+                    <img src="{{ question.image.url }}" alt="Изображение вопроса" class="img-fluid mb-3" style="max-width:100%;">
+                    <div class="answers">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="question_{{ question.id }}" value="A" id="optionA_{{ question.id }}">
+                            <label class="form-check-label" for="optionA_{{ question.id }}"> а. {{ question.option_a }}</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="question_{{ question.id }}" value="B" id="optionB_{{ question.id }}">
+                            <label class="form-check-label" for="optionB_{{ question.id }}"> б. {{ question.option_b }}</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="question_{{ question.id }}" value="C" id="optionC_{{ question.id }}">
+                            <label class="form-check-label" for="optionC_{{ question.id }}"> в. {{ question.option_c }}</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="question_{{ question.id }}" value="D" id="optionD_{{ question.id }}">
+                            <label class="form-check-label" for="optionD_{{ question.id }}"> г. {{ question.option_d }}</label>
+                        </div>
+                        <input type="hidden" name="answered_{{ question.id }}" id="answered_{{ question.id }}" value="false">
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <button type="button" id="next-button" class="btn btn-primary btn-lg btn-block mb-3">Следующий вопрос</button>
+            <button type="submit" id="submit-button" class="btn btn-success btn-lg btn-block" style="display: none;">Отправить</button>
+        </form>
+        <div class="mt-3 text-center">
+            <p id="timer" class="text-danger">Осталось времени: <span id="time-left">5</span> секунд</p>
+        </div>
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let currentQuestion = 0;
+    const questions = document.querySelectorAll('.question');
+    const timeLeft = document.getElementById('time-left');
+    const nextButton = document.getElementById('next-button');
+    const submitButton = document.getElementById('submit-button');
+    const form = document.getElementById('test-form');
+    let timer;
+
+    function showQuestion(index) {
+        questions.forEach((question, i) => {
+            question.style.display = i === index ? 'block' : 'none';
+        });
+        if (index === questions.length - 1) {
+            nextButton.style.display = 'none';
+            submitButton.style.display = 'block';
+        } else {
+            nextButton.style.display = 'block';
+            submitButton.style.display = 'none';
+        }
+        resetTimer();
+    }
+
+    function resetTimer() {
+        let time = 5;
+        timeLeft.textContent = time;
+        clearInterval(timer);
+        timer = setInterval(() => {
+            time--;
+            timeLeft.textContent = time;
+            if (time <= 0) {
+                clearInterval(timer);
+                disableOptions();
+            }
+        }, 1000);
+    }
+
+    function disableOptions() {
+        const currentInputs = questions[currentQuestion].querySelectorAll('input[type="radio"]');
+        currentInputs.forEach(input => {
+            input.disabled = true;
+        });
+        document.getElementById(`answered_${questions[currentQuestion].dataset.questionId}`).value = "false";
+    }
+
+    nextButton.addEventListener('click', function() {
+        if (currentQuestion < questions.length - 1) {
+            currentQuestion++;
+            showQuestion(currentQuestion);
+        } else {
+            form.submit();
+        }
+    });
+
+    questions.forEach((question, index) => {
+        const inputs = question.querySelectorAll('input[type="radio"]');
+        inputs.forEach(input => {
+            input.addEventListener('change', function() {
+                document.getElementById(`answered_${question.dataset.questionId}`).value = "true";
+            });
+        });
+    });
+
+    showQuestion(currentQuestion); // Начинаем с первого вопроса
+});
+</script>
+{% endblock %}

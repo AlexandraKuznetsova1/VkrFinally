@@ -1,0 +1,9 @@
+{% extends 'first/base.html' %}
+{% load crispy_forms_tags %}
+{% block content %}
+<div class="container">
+    <h2>{{user.username}}</h2>
+    <h2>{{user.email}}</h2>
+    <a href="{% url 'take_test' %}" class="btn" style="color: white; background-color: #fd5e14;">Решить тест</a>
+</div>
+{% endblock %}
