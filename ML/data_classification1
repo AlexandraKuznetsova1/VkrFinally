@@ -1,0 +1,74 @@
+import os
+import math
+from app import download_file, draw_bounding_boxes_with_flag
+from config import MODEL_DESTINATION, MODEL_URL
+from ultralytics import YOLO
+import cv2
+
+
+def is_sign_duplicate(existing_signs, new_sign, threshold=50):
+    """
+    Проверяет, является ли новый знак дубликатом одного из уже обнаруженных знаков.
+    Параметры:
+    - existing_signs: Список уже обнаруженных знаков.
+    - new_sign: Новый знак для проверки.
+    - threshold: Пороговое значение для определения близости знаков.
+    """
+    new_clss, new_box = new_sign
+    for clss, box in existing_signs:
+        if clss == new_clss:
+            # Рассчитываем расстояние между центрами двух знаков
+            existing_center = ((box[0] + box[2]) / 2, (box[1] + box[3]) / 2)
+            new_center = ((new_box[0] + new_box[2]) / 2, (new_box[1] + new_box[3]) / 2)
+            distance = math.sqrt(
+                (existing_center[0] - new_center[0]) ** 2
+                + (existing_center[1] - new_center[1]) ** 2
+            )
+            if distance < threshold:
+                return True
+    return False
+
+
+def process_frames(
+    frames_path: str = "frames",
+    output_path: str = "processed_frames",
+    threshold: float = 0.5,
+    duplicate_threshold: int = 50,
+):
+    download_file(MODEL_URL, MODEL_DESTINATION)
+    yolo_model = YOLO(MODEL_DESTINATION)
+
+    if not os.path.exists(output_path):
+        os.mkdir(output_path)
+
+    frame_paths = [frame_path for frame_path in os.listdir(frames_path)]
+    seen_signs = []
+
+    for frame_path in frame_paths:
+        image = cv2.imread(os.path.join(frames_path, frame_path))
+        results = yolo_model(image)
+
+        image, have_sign, detected_signs = draw_bounding_boxes_with_flag(
+            image, results, yolo_model, threshold
+        )
+
+        if have_sign:
+            unique_signs = []
+            for sign in detected_signs:
+                if not is_sign_duplicate(seen_signs, sign, duplicate_threshold):
+                    unique_signs.append(sign)
+            if unique_signs:
+                seen_signs.extend(unique_signs)
+                cv2.imwrite(os.path.join(output_path, frame_path), image)
+
+
+if __name__ == "__main__":
+    process_frames(
+        frames_path="output2",
+        output_path="arch_processed",
+        threshold=0.45,
+        duplicate_threshold=100,
+    )
+
+    # duplicate_threshold = 300 -> одно изображение на arch1
+    # duplicate_threshold = 100 -> два изображение на arch1 (на обоих изображениях один и тот же знак)
