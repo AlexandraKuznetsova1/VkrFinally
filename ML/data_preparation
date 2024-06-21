@@ -1,0 +1,20 @@
+import cv2
+
+capture = cv2.VideoCapture('C:/Users/alexa/Desktop/WorkWithVideo/test2.mp4')
+def cadr():
+    frameNr = 0
+    while (True):
+
+        success, frame = capture.read()
+
+        if success:
+            cv2.imwrite(f'C:/Users/alexa/Desktop/WorkWithVideo/output2/frame_{frameNr}.jpg', frame)
+
+        else:
+            break
+
+        frameNr = frameNr + 1
+
+    capture.release()
+if __name__ == '__main__':
+    cadr()
